@@ -9,35 +9,59 @@ from django.http.response import HttpResponse as HttpResponse
 from .models import Teacher
 from chatbot.kakao import ChatbotView
 
-    
+MAP_BLOCK_ID = "66667a153d1a600a8a3acc34"
 # Create your views here.
 class MapView(ChatbotView):
     def post(self, request):
         body = request.body.decode("utf-8")
         payload = json.loads(body)
-        parameters = payload["action"]["params"]
-        offic_name = parameters.get("office_name")
+        action = payload["action"]
+        parameters = action["params"]
+        extra_parameters = action["clientExtra"]
+        office_name = parameters.get("office_name") if parameters.get("office_name") else extra_parameters.get("office_name")
+        
         try:
-            assert offic_name, "교무실 이름을 입력해 주세요."
-            outputs = {"simpleImage":{"imageUrl": "","altText":"교무실 약도 입니다"}}
-            
-            if offic_name == "test1":
-                image_url = "https://wimg.mk.co.kr/news/cms/202312/15/news-p.v1.20231204.469decf4893d47f68cce5fc3bfbe0309_P1.jpg"
-            elif offic_name == "test2":
-                image_url = "https://i.namu.wiki/i/zN7ASE4kyQNHO9jeAobgriDh2fqdbqiJVk5v7K-Tb_bCtOtem2v47wkFV4cQfYJYwbjr7bgoVqKVyHkp_Gy_6A.webp"
-            elif offic_name == "test3":
-                image_url = "https://blog.kakaocdn.net/dn/15c1u/btrBF5rq2s1/uCDT0O1GSpm5WEu8kHzna0/img.jpg"
+            office_image_maps = {"예능환경":"https://wimg.mk.co.kr/news/cms/202312/15/news-p.v1.20231204.469decf4893d47f68cce5fc3bfbe0309_P1.jpg",
+                                    "창의환경":"https://i.namu.wiki/i/zN7ASE4kyQNHO9jeAobgriDh2fqdbqiJVk5v7K-Tb_bCtOtem2v47wkFV4cQfYJYwbjr7bgoVqKVyHkp_Gy_6A.webp",
+                                    "융합정보":"https://blog.kakaocdn.net/dn/15c1u/btrBF5rq2s1/uCDT0O1GSpm5WEu8kHzna0/img.jpg"} #교무실 별 약도
+        
+            if office_name:
+                outputs = {"simpleImage":{"imageUrl": "","altText":"교무실 약도 입니다"}}
+                image_url = office_image_maps.get(office_name)
+                assert image_url,"교무실 이름이 정확하지 않아요" #교무실 이름이 잘못됐습니다.
+                outputs["simpleImage"]["imageUrl"] = image_url
+                
             else:
-                raise AssertionError("교무실 이름이 정확하지 않아요")
-            
-            #이미지 링크만 다르게 변조해서 반환        
-            outputs["simpleImage"]["imageUrl"] = image_url
-            message = self.create_response_message(outputs)    
+                office_names = office_image_maps.keys()
+                text_card_template = {
+                    "textCard":{
+                    "title":"교무실을 지정해주세요",
+                    "description":"위치를 확인할 교무실을 지정해주세요",
+                    "buttons":[]
+                    }
+                }
+                button_template = {
+                                "action": "block",
+                                "blockId": MAP_BLOCK_ID,
+                                "label": "",
+                                "extra": {"office_name": ""},
+                            }
+                buttons = text_card_template["textCard"]["buttons"] 
+                
+                for office_name in office_names:
+                    new_button = deepcopy(button_template)
+                    new_button["label"] = office_name
+                    new_button["extra"]["office_name"] = office_name
+                    buttons.append(new_button)
+                
+                outputs = text_card_template
+
         
         except Exception as e:
             outputs = {"simpleText": {"text": str(e)}}
 
         finally:
+            message = self.create_response_message(outputs)    
             return JsonResponse(message)
     
 
@@ -45,7 +69,7 @@ class TeacherView(ChatbotView):
     action = None
     button_template = {
         "action": "block",
-        "blockId": "fsafsafasr21512",
+        "blockId": MAP_BLOCK_ID,
         "label": "약도보기",
         "extra": {"office_name": ""},
     }
