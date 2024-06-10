@@ -48,7 +48,7 @@ kakao_test_message = {
     "action": {
         "id": "<액션 id>",
         "name": "<액션 이름>",
-        "params": {},
+        "params": {"teacher_name": "정명진", "office_name": "test1"},
         "detailParams": {},
         "clientExtra": {},
     },
@@ -60,7 +60,11 @@ kakao_test_message = {
             "properties": {"botUserKey": "<사용자 botUserKey>"},
         },
         "utterance": "<사용자 발화>",
-        "params": {"surface": "BuilderBotTest", "ignoreMe": "true", "teacher_name":"정명진"},
+        "params": {
+            "surface": "BuilderBotTest",
+            "ignoreMe": "true",
+            "teacher_name": "정명진",
+        },
         "lang": "ko",
         "timezone": "Asia/Seoul",
     },
@@ -81,6 +85,21 @@ class TestTeacher:
     def test_teacher_name(self):
         client = Client()
         url = reverse("teacher:info")
-        response = client.post(path=url, data=kakao_test_message)
+        response = client.post(
+            path=url,
+            data=json.dumps(kakao_test_message),
+            content_type="application/json",
+        )
+        logging.debug(response.content)
+        assert response.status_code == 200
+
+    def test_teacher_map(self):
+        client = Client()
+        url = reverse("teacher:map")
+        response = client.post(
+            path=url,
+            data=json.dumps(kakao_test_message),
+            content_type="application/json",
+        )
         logging.debug(response.content)
         assert response.status_code == 200
